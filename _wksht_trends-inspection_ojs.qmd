@@ -1,0 +1,341 @@
+---
+title: "Data Cleaning"
+format: dashboard
+theme: cosmo
+include-in-header:
+  text: "<style> .observablehq--string {color: white;} </style>"
+---
+
+```{r}
+suppressMessages(library(dplyr)); library(stringr)
+source(here::here('../0_functions_analysis.r'))
+source(here::here('../0_functions_results.r'))
+df <- left_join(
+  arrow::read_parquet(here::here('../../data/lea_final.parquet')),
+  arrow::read_parquet(here::here("../../data/policies_final.parquet")),
+  c("st", "year")
+)
+```
+
+```{r}
+df_trim <- filter(df, o_staff_cnslr == 0, year >= 2005) |>
+  select(leaid, st, year, out = staff_cnslr_pp)
+
+st_avg <- df |> mutate(
+  cnslr = mean(staff_cnslr_pp, na.rm = T),
+  sup = mean(staff_sup_stdnt_pp, na.rm = T),
+  exp_pp = mean(exp_sup_stdnt_pp, na.rm = T),
+  exp_pct = mean(exp_sup_stdnt_pct_exp_tot, na.rm = T),
+  enroll = mean(enroll, na.rm = T),
+  n_cnslr = sum(!is.na(staff_cnslr_pp)),
+  n_sup = sum(!is.na(staff_sup_stdnt_pp)),
+  n_exp = sum(!is.na(exp_sup_stdnt_pp)),
+  .by = c(st, year)
+)
+
+st_avg_clean_cnslr <- df |> 
+  filter(o_staff_cnslr == 0, year >= 2005) |> 
+  summarise(out = mean(staff_cnslr_pp, na.rm = T), .by = c(st, year)) |>
+  mutate(st_yr = str_c(st, year), out = ifelse(is.nan(out), NA, out))
+st_avg_clean_cnslr_bal <- 
+
+ojs_define(data_og = st_avg_clean_cnslr)
+ojs_define(data_lea_og = df_trim)
+```
+
+```{ojs}
+//| output: false
+d3 = require('d3@7')
+data = transpose(data_og)
+data_lea = transpose(data_lea_og)
+data_filt_sel = data.filter(d => st_select.includes(d.st))
+allStates = [...new Set(data.map(d => d.st))];
+mutable clickedState = null;
+mutable messyDistricts = 'st,leaid,year;';
+```
+
+## Sidebar {.sidebar width="100px"}
+
+```{ojs}
+viewof st_select = Inputs.select(
+  data_og.st, {label: "State", unique: true, multiple: true, value: allStates}
+)
+// add toggle for balanced panel
+```
+
+## Content {width=90%}
+
+### States Plot
+
+```{ojs}
+/* Note: for responsive layout, one option is to define only the height, and then dont define a height or width on the SVG, and in viewbox set it to the width and height; this will have it autoresize pretty nicely, tho it doesnt actually fill the box */
+
+/* Another option is define both width and height and set SVG */
+{
+  const margin = ({top: 20, right: 20, bottom: 30, left: 40});  // Dimensions
+  const height = 450;
+  //const width = 400;
+
+  const x = d3.scaleLinear()  // Scale functions
+    .domain(d3.extent(data_filt_sel, d => d.year))
+    .range([margin.left, width - margin.right]);
+  const y = d3.scaleLinear()
+    .domain([0, d3.max(data_filt_sel, d => d.out) + 50])
+    .range([height - margin.bottom, margin.top])
+    .nice();
+
+  const svg = d3.create('svg')  // Parent SVG
+    //.attr('height', height)
+    //.attr('width', width)
+    .attr('viewBox', [0, 0, width, height]);
+    //.attr('preserveAspectRatio', 'xMidYMid meet');
+  
+  const xAxis = d3.axisBottom(x)  // Axes
+    .tickFormat(d3.format('d'));
+  const yAxis = d3.axisLeft(y);
+  svg.append('g')
+    .attr('transform', `translate(0, ${height - margin.bottom})`)
+    .call(xAxis)
+    .selectAll('.tick text')
+    .attr('font-size', '16px');
+  svg.append('g')
+    .attr('transform', `translate(${margin.left}, 0)`)
+    .call(yAxis);
+
+  const points = data_filt_sel.map(d => [x(d.year), y(d.out), d.st])  // Lines
+  const groups = d3.rollup(points, v => Object.assign(v, {z: v[0][2]}), d => d[2]);
+  const line = d3.line().defined(d => !isNaN(d[1]));
+  const path = svg.append('g')
+    .attr('fill', 'none')
+    .attr('stroke', 'steelblue')
+    .attr('stroke-width', 3.5)
+    .attr('stroke-linejoin', 'round')
+    .selectAll('path')
+    .data(groups.values())
+    .join('path')
+    .style('mix-blend-mode', 'multiply')
+    .attr('d', line);
+  
+  const dot = svg.append('g')  // Dot (for hover)
+    .attr('display', 'none');
+  dot.append('circle')
+    .attr('r', 2.5);
+  dot.append('text')
+    .attr('text-anchor', 'middle')
+    .attr('y', -8);
+  const dotClick = svg.append('g')
+
+  let xHover = null,
+    yHover = null,
+    xClick = null,
+    yClick = null,
+    hoveredSeries = null,
+    activeSeries = allStates,
+    clickCounter = null;
+
+  svg  // Event listeners
+    .on('pointerenter', pointerEntered)
+    .on('pointermove', pointerMoved)
+    .on('pointerleave', pointerLeft)
+    .on('click', clicked);
+
+  return svg.node();
+
+  function pointerMoved(event) {  // Event handler functions
+    if (clickCounter % 2 == 1) {
+      activeSeries = hoveredSeries;
+    } else {
+      activeSeries = allStates;
+    }
+    const activePoints = points.filter(d => activeSeries.includes(d[2]));
+    const [xm, ym] = d3.pointer(event);
+    const i = d3.leastIndex(activePoints, ([x, y]) => Math.hypot(x - xm, y - ym));
+    [xHover, yHover, hoveredSeries] = activePoints[i];
+    path
+      .style('stroke', ({z}) => z === hoveredSeries ? null : '#ddd')
+      .filter(({z}) => z === hoveredSeries)
+      .raise();
+
+    const pctChange = d3.format('.1%')(
+      (y.invert(yHover) - y.invert(yClick)) / y.invert(yClick)
+    );
+    dot.attr('transform', `translate(${xHover}, ${yHover})`);
+    if (clickCounter % 2 == 1) {
+      dot.select('text').text(`${hoveredSeries} ${pctChange}`)
+    } else {
+      dot.select('text').text(hoveredSeries);
+    }
+  }
+
+  function clicked(event) {
+    clickCounter++;
+    if (clickCounter % 2 == 1) {
+      xClick = xHover;
+      yClick = yHover;
+      dotClick.append('circle')
+        .attr('r', 2.5)
+        .attr('transform', `translate(${xClick}, ${yClick})`);
+    } else {
+      dotClick.select('circle').remove();
+    }
+    mutable clickedState = hoveredSeries;
+  }
+
+  function pointerEntered() {
+    path.style('mix-blend-mode', null).style('stroke', '#ddd');
+    dot.attr('display', null);
+  }
+
+  function pointerLeft() {
+    if (clickCounter % 2 == 0) {
+      path.style('mix-blend-mode', 'multiply').style('stroke', null);
+      dot.attr('display', 'none');
+    } else {
+      return;
+    }
+  }
+}
+```
+
+### plot 2
+
+```{ojs}
+{
+  const margin = ({top: 20, right: 20, bottom: 30, left: 40});  // Dimensions
+  const height = 450;
+
+  const x = d3.scaleLinear()  // Scale functions
+    .domain(d3.extent(data_lea, d => d.year))
+    .range([margin.left, width - margin.right]);
+  const y = d3.scaleLinear()
+    .domain([0, d3.max(data_lea, d => d.out) + 50])
+    .range([height - margin.bottom, margin.top])
+    .nice();
+
+  const svg = d3.create('svg')  // Parent SVG
+    .attr('viewBox', [0, 0, width, height]);
+  
+  const xAxis = d3.axisBottom(x)  // Axes
+    .tickFormat(d3.format('d'));
+  const yAxis = d3.axisLeft(y);
+  svg.append('g')
+    .attr('transform', `translate(0, ${height - margin.bottom})`)
+    .call(xAxis)
+    .selectAll('.tick text')
+    .attr('font-size', '16px');
+  svg.append('g')
+    .attr('transform', `translate(${margin.left}, 0)`)
+    .call(yAxis);
+
+  const activeData = data_lea.filter(d => d.st === clickedState)
+  const points = activeData.map(d => [x(d.year), y(d.out), d.leaid, d.st])  // Lines
+  const groups = d3.rollup(points, v => Object.assign(v, {z: v[0][2]}), d => d[2]);
+  const line = d3.line().defined(d => !isNaN(d[1]));
+  const path = svg.append('g')
+    .attr('fill', 'none')
+    .attr('stroke', 'steelblue')
+    .attr('stroke-width', 3.5)
+    .attr('stroke-linejoin', 'round')
+    .selectAll('path')
+    .data(groups.values())
+    .join('path')
+    .style('mix-blend-mode', 'multiply')
+    .attr('d', line);
+  
+  const dot = svg.append('g')  // Dot (for hover)
+    .attr('display', 'none');
+  dot.append('circle')
+    .attr('r', 2.5);
+  dot.append('text')
+    .attr('text-anchor', 'middle')
+    .attr('y', -8);
+  const dotClick = svg.append('g')
+
+  const allDistricts = [...new Set(activeData.map(d => d.leaid))]
+  let xHover = null,
+    yHover = null,
+    xClick = null,
+    yClick = null,
+    hoveredSeries = null,
+    activeSeries = allDistricts,
+    pctChange = null,
+    clickCounter = null;
+
+  svg  // Event listeners
+    .on('pointerenter', pointerEntered)
+    .on('pointermove', pointerMoved)
+    .on('pointerleave', pointerLeft)
+    .on('click', clicked);
+
+  return svg.node();
+
+  function pointerMoved(event) {  // Event handler functions
+    if (clickCounter % 2 == 1) {
+      activeSeries = hoveredSeries;
+    } else {
+      activeSeries = allDistricts;
+    }
+    const activePoints = points.filter(d => activeSeries.includes(d[2]));
+    const [xm, ym] = d3.pointer(event);
+    const i = d3.leastIndex(activePoints, ([x, y]) => Math.hypot(x - xm, y - ym));
+    [xHover, yHover, hoveredSeries] = activePoints[i];
+    path
+      .style('stroke', ({z}) => z === hoveredSeries ? null : '#ddd')
+      .filter(({z}) => z === hoveredSeries)
+      .raise();
+
+    pctChange = d3.format('.1%')(
+      (y.invert(yHover) - y.invert(yClick)) / y.invert(yClick)
+    );
+    dot.attr('transform', `translate(${xHover}, ${yHover})`);
+    if (clickCounter % 2 == 1) {
+      dot.select('text').text(`${hoveredSeries} ${pctChange}`)
+    } else {
+      dot.select('text').text(hoveredSeries);
+    }
+  }
+
+  function clicked(event) {
+    clickCounter++;
+    if (clickCounter % 2 == 1) {
+      xClick = xHover;
+      yClick = yHover;
+      dotClick.append('circle')
+        .attr('r', 2.5)
+        .attr('transform', `translate(${xClick}, ${yClick})`);
+      mutable messyDistricts = mutable messyDistricts + 
+        `${clickedState},${hoveredSeries},${Math.round(x.invert(xClick))};`;
+    } else {
+      dotClick.select('circle').remove();
+    }
+  }
+
+  function pointerEntered() {
+    path.style('mix-blend-mode', null).style('stroke', '#ddd');
+    dot.attr('display', null);
+  }
+
+  function pointerLeft() {
+    path.style('mix-blend-mode', 'multiply').style('stroke', null);
+    dot.attr('display', 'none');
+  }
+}
+```
+
+## Messy Districts {width=10%}
+
+```{ojs}
+messyDistricts;
+```
+
+```{r}
+#| eval: false
+# Code to turn the text from messyDistricts into data in R
+# Paste text into a file, here named 'messy_lea.txt', then run below
+file_name <- here::here('messy_lea.txt')
+file_content <- readChar(file_name, file.info(file_name)$size) |> 
+  stringr::str_split_1(filecontent, ';') |> 
+  stringr::str_split(filecontent2, ',')
+df_messy_lea <- as.data.frame(do.call(rbind, filecontent3)) |> 
+  janitor::row_to_names(1)
+```
