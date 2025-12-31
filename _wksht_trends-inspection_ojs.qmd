@@ -167,7 +167,7 @@ viewof outcome = Inputs.radio(
 
 /* Another option is define both width and height and set SVG */
 {
-  const margin = ({top: 20, right: 20, bottom: 30, left: 40});  // Dimensions
+  const margin = ({top: 20, right: 20, bottom: 30, left: 50});  // Dimensions
   const height = 425;
   //const width = 400;
 
@@ -192,10 +192,12 @@ viewof outcome = Inputs.radio(
     .attr('transform', `translate(0, ${height - margin.bottom})`)
     .call(xAxis)
     .selectAll('.tick text')
-    .attr('font-size', '16px');
+    .attr('font-size', '14px');
   svg.append('g')
     .attr('transform', `translate(${margin.left}, 0)`)
-    .call(yAxis);
+    .call(yAxis)
+    .selectAll('.tick text')
+    .attr('font-size', '14px');
 
   const points = data_st_filt.map(d => [x(d.year), y(d.out), d.st])  // Lines
   const groups = d3.rollup(points, v => Object.assign(v, {z: v[0][2]}), d => d[2]);
@@ -296,7 +298,7 @@ viewof outcome = Inputs.radio(
 
 ```{ojs}
 {
-  const margin = ({top: 20, right: 20, bottom: 30, left: 40});  // Dimensions
+  const margin = ({top: 20, right: 20, bottom: 30, left: 50});  // Dimensions
   const height = 425;
 
   const activeData = data_lea_filt.filter(d => d.st === clickedState)
@@ -318,10 +320,12 @@ viewof outcome = Inputs.radio(
     .attr('transform', `translate(0, ${height - margin.bottom})`)
     .call(xAxis)
     .selectAll('.tick text')
-    .attr('font-size', '16px');
+    .attr('font-size', '14px');
   svg.append('g')
     .attr('transform', `translate(${margin.left}, 0)`)
-    .call(yAxis);
+    .call(yAxis)
+    .selectAll('.tick text')
+    .attr('font-size', '14px');
 
   const points = activeData.map(d => [x(d.year), y(d.out), d.leaid, d.st])  // Lines
   const groups = d3.rollup(points, v => Object.assign(v, {z: v[0][2]}), d => d[2]);
