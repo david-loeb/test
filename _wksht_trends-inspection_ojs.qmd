@@ -2,8 +2,8 @@
 title: "Data Cleaning"
 format: dashboard
 theme: cosmo
-# include-in-header:
-#   text: "<style> .observablehq--string {color: white;} </style>"
+include-in-header:
+  text: "<style> .observablehq--string {color: white;} </style>"
 ---
 
 ```{r}
@@ -168,7 +168,7 @@ viewof outcome = Inputs.radio(
 /* Another option is define both width and height and set SVG */
 {
   const margin = ({top: 20, right: 20, bottom: 30, left: 40});  // Dimensions
-  const height = 450;
+  const height = 425;
   //const width = 400;
 
   const x = d3.scaleLinear()  // Scale functions
@@ -297,7 +297,7 @@ viewof outcome = Inputs.radio(
 ```{ojs}
 {
   const margin = ({top: 20, right: 20, bottom: 30, left: 40});  // Dimensions
-  const height = 450;
+  const height = 425;
 
   const activeData = data_lea_filt.filter(d => d.st === clickedState)
   const x = d3.scaleLinear()  // Scale functions
