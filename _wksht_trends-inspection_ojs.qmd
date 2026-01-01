@@ -8,7 +8,7 @@ include-in-header:
       .observablehq--string {color: white;}
       @media (max-width: 575.98px) {
         .quarto-dashboard .bslib-grid .min-height-card {
-          grid-template-rows: minmax(250px, max-content) !important;
+          grid-template-rows: minmax(275px, max-content) !important;
         }
       }
     </style>
