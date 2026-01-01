@@ -191,6 +191,8 @@ dims = Generators.observe(notify => {
 });
 height = dims.height;
 width = dims.width;
+tickNumY = Math.max(height / 50, 2);
+tickNumX = Math.max(width / 75, 2);
 ```
 
 ### States Plot {.min-height-card}
@@ -198,8 +200,6 @@ width = dims.width;
 ```{ojs}
 {
   const margin = ({top: 20, right: 20, bottom: 30, left: 40});  // Dimensions
-  const tickNumY = Math.max(height / 50, 2);
-  const tickNumX = Math.max(width / 75, 2);
 
   const x = d3.scaleLinear()  // Scale functions
     .domain(d3.extent(data_st_filt, d => d.year))
@@ -324,7 +324,7 @@ width = dims.width;
 }
 ```
 
-### plot 2 {.min-height-card}
+### Districts Plot {.min-height-card}
 
 ```{ojs}
 {
@@ -344,8 +344,10 @@ width = dims.width;
     .attr('height', height);
   
   const xAxis = d3.axisBottom(x)  // Axes
+    .ticks(tickNumX)
     .tickFormat(d3.format('d'));
-  const yAxis = d3.axisLeft(y);
+  const yAxis = d3.axisLeft(y)
+    .ticks(tickNumY);
   svg.append('g')
     .attr('transform', `translate(0, ${height - margin.bottom})`)
     .call(xAxis)
