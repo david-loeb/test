@@ -198,6 +198,8 @@ width = dims.width;
 ```{ojs}
 {
   const margin = ({top: 20, right: 20, bottom: 30, left: 40});  // Dimensions
+  const tickNumY = Math.max(height / 50, 2);
+  const tickNumX = Math.max(width / 50, 2);
 
   const x = d3.scaleLinear()  // Scale functions
     .domain(d3.extent(data_st_filt, d => d.year))
@@ -212,8 +214,10 @@ width = dims.width;
     .attr('height', height);
   
   const xAxis = d3.axisBottom(x)  // Axes
+    .ticks(tickNumX)
     .tickFormat(d3.format('d'));
-  const yAxis = d3.axisLeft(y);
+  const yAxis = d3.axisLeft(y)
+    .ticks(tickNumY);
   svg.append('g')
     .attr('transform', `translate(0, ${height - margin.bottom})`)
     .call(xAxis)
