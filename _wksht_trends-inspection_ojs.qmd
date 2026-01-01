@@ -3,7 +3,15 @@ title: "Data Cleaning"
 format: dashboard
 theme: cosmo
 include-in-header:
-  text: "<style> .observablehq--string {color: white;} </style>"
+  text: | 
+    <style> 
+      .observablehq--string {color: white;}
+      @media (max-width: 575.98px) {
+        .quarto-dashboard .bslib-grid {
+          grid-template-rows: minmax(250px, max-content) !important;
+        }
+      }
+    </style>
 ---
 
 ```{r}
