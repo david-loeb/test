@@ -167,7 +167,7 @@ viewof outcome = Inputs.radio(
 )
 ```
 
-## Content {.min-height-cards width=90%}
+## Content {width=90%}
 
 ```{ojs}
 //| output: false
@@ -193,7 +193,7 @@ height = dims.height;
 width = dims.width;
 ```
 
-### States Plot
+### States Plot {.min-height-card}
 
 ```{ojs}
 {
@@ -320,7 +320,7 @@ width = dims.width;
 }
 ```
 
-### plot 2
+### plot 2 {.min-height-card}
 
 ```{ojs}
 {
