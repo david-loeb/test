@@ -2,9 +2,8 @@
 title: "Data Cleaning"
 format: dashboard
 theme: cosmo
-# include-in-header:
-#   text: "<style> .observablehq--string {color: white;} </style>"
-css: style.css
+include-in-header:
+  text: "<style> .observablehq--string {color: white;} </style>"
 ---
 
 ```{r}
