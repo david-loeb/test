@@ -131,6 +131,7 @@ data_lea_filt = data_lea.filter(d => d.excl.includes(exclusion));
 allStates = [...new Set(data_st.map(d => d.st))];
 mutable clickedState = null;
 mutable messyDistricts = 'st,leaid,year;';
+//mutable height = 425;
 exclusionMap = new Map(
   [['None', 'all'], 
   ['Outliers', 'no outliers'], 
@@ -160,16 +161,35 @@ viewof outcome = Inputs.radio(
 
 ## Content {width=90%}
 
+```{ojs}
+//| output: false
+// This and next cell query the containing card's height/width when window 
+// resizes and set plot height/width accordingly to fill card. Resizing is a 
+// bit choppy. Alternative is set fixed height and use Observable's dynamic
+// width variable, then just define a viewBox on SVG to 0 0 width height (or maybe 
+// instead just define the height and width attrs?) Much smoother resizing but 
+// will not fill card perfectly on height unless at perfect window size
+container = document.querySelector('#ojs-cell-5');
+```
+
+```{ojs}
+//| output: false
+dims = Generators.observe(notify => {
+  const observer = new ResizeObserver(entries => {
+    notify(entries[0].contentRect);
+  });
+  observer.observe(container.parentNode);
+  return () => observer.disconnect();
+});
+height = dims.height;
+width = dims.width;
+```
+
 ### States Plot
 
 ```{ojs}
-/* Note: for responsive layout, one option is to define only the height, and then dont define a height or width on the SVG, and in viewbox set it to the width and height; this will have it autoresize pretty nicely, tho it doesnt actually fill the box */
-
-/* Another option is define both width and height and set SVG */
 {
-  const margin = ({top: 20, right: 20, bottom: 30, left: 50});  // Dimensions
-  const height = 425;
-  //const width = 400;
+  const margin = ({top: 20, right: 20, bottom: 30, left: 40});  // Dimensions
 
   const x = d3.scaleLinear()  // Scale functions
     .domain(d3.extent(data_st_filt, d => d.year))
@@ -180,10 +200,8 @@ viewof outcome = Inputs.radio(
     .nice();
 
   const svg = d3.create('svg')  // Parent SVG
-    //.attr('height', height)
-    //.attr('width', width)
-    .attr('viewBox', [0, 0, width, height]);
-    //.attr('preserveAspectRatio', 'xMidYMid meet');
+    .attr('width', width)
+    .attr('height', height);
   
   const xAxis = d3.axisBottom(x)  // Axes
     .tickFormat(d3.format('d'));
@@ -192,12 +210,12 @@ viewof outcome = Inputs.radio(
     .attr('transform', `translate(0, ${height - margin.bottom})`)
     .call(xAxis)
     .selectAll('.tick text')
-    .attr('font-size', '14px');
+    .attr('font-size', '12px');
   svg.append('g')
     .attr('transform', `translate(${margin.left}, 0)`)
     .call(yAxis)
     .selectAll('.tick text')
-    .attr('font-size', '14px');
+    .attr('font-size', '12px');
 
   const points = data_st_filt.map(d => [x(d.year), y(d.out), d.st])  // Lines
   const groups = d3.rollup(points, v => Object.assign(v, {z: v[0][2]}), d => d[2]);
@@ -298,8 +316,7 @@ viewof outcome = Inputs.radio(
 
 ```{ojs}
 {
-  const margin = ({top: 20, right: 20, bottom: 30, left: 50});  // Dimensions
-  const height = 425;
+  const margin = ({top: 20, right: 20, bottom: 30, left: 40});  // Dimensions
 
   const activeData = data_lea_filt.filter(d => d.st === clickedState)
   const x = d3.scaleLinear()  // Scale functions
@@ -311,7 +328,8 @@ viewof outcome = Inputs.radio(
     .nice();
 
   const svg = d3.create('svg')  // Parent SVG
-    .attr('viewBox', [0, 0, width, height]);
+    .attr('width', width)
+    .attr('height', height);
   
   const xAxis = d3.axisBottom(x)  // Axes
     .tickFormat(d3.format('d'));
@@ -320,12 +338,12 @@ viewof outcome = Inputs.radio(
     .attr('transform', `translate(0, ${height - margin.bottom})`)
     .call(xAxis)
     .selectAll('.tick text')
-    .attr('font-size', '14px');
+    .attr('font-size', '12px');
   svg.append('g')
     .attr('transform', `translate(${margin.left}, 0)`)
     .call(yAxis)
     .selectAll('.tick text')
-    .attr('font-size', '14px');
+    .attr('font-size', '12px');
 
   const points = activeData.map(d => [x(d.year), y(d.out), d.leaid, d.st])  // Lines
   const groups = d3.rollup(points, v => Object.assign(v, {z: v[0][2]}), d => d[2]);
@@ -362,7 +380,7 @@ viewof outcome = Inputs.radio(
 
   svg.append('text')
     .attr('x', width / 2)
-    .attr('y', margin.top / 2)
+    .attr('y', margin.top)
     .attr('text-anchor', 'middle')
     .style('font-size', '16px')
     .text(clickedState);
