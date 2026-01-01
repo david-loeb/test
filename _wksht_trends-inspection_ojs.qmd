@@ -2,8 +2,9 @@
 title: "Data Cleaning"
 format: dashboard
 theme: cosmo
-include-in-header:
-  text: "<style> .observablehq--string {color: white;} </style>"
+# include-in-header:
+#   text: "<style> .observablehq--string {color: white;} </style>"
+css: style.css
 ---
 
 ```{r}
@@ -163,7 +164,6 @@ viewof outcome = Inputs.radio(
 
 ```{ojs}
 //| output: false
-//| eval: false
 // This and next cell query the containing card's height/width when window 
 // resizes and set plot height/width accordingly to fill card. Resizing is a 
 // bit choppy. Alternative is set fixed height and use Observable's dynamic
@@ -175,7 +175,6 @@ container = document.querySelector('#ojs-cell-5');
 
 ```{ojs}
 //| output: false
-//| eval: false
 dims = Generators.observe(notify => {
   const observer = new ResizeObserver(entries => {
     notify(entries[0].contentRect);
@@ -192,7 +191,7 @@ width = dims.width;
 ```{ojs}
 {
   const margin = ({top: 20, right: 20, bottom: 30, left: 40});  // Dimensions
-  const height = 200;
+
   const x = d3.scaleLinear()  // Scale functions
     .domain(d3.extent(data_st_filt, d => d.year))
     .range([margin.left, width - margin.right]);
@@ -319,7 +318,6 @@ width = dims.width;
 ```{ojs}
 {
   const margin = ({top: 20, right: 20, bottom: 30, left: 40});  // Dimensions
-  const height = 200;
 
   const activeData = data_lea_filt.filter(d => d.st === clickedState)
   const x = d3.scaleLinear()  // Scale functions
