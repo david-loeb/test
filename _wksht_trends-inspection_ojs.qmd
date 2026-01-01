@@ -199,7 +199,7 @@ width = dims.width;
 {
   const margin = ({top: 20, right: 20, bottom: 30, left: 40});  // Dimensions
   const tickNumY = Math.max(height / 50, 2);
-  const tickNumX = Math.max(width / 100, 2);
+  const tickNumX = Math.max(width / 75, 2);
 
   const x = d3.scaleLinear()  // Scale functions
     .domain(d3.extent(data_st_filt, d => d.year))
